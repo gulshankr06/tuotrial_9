@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CS543 API Security · CampusEats Catalogue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-badge">🔒 JWT</div>
+        <div>
+          <h1>CampusEats Secured Catalogue</h1>
+          <p class="subtitle">CS543 Web Services · API Security Tutorial (Authentication & Role Authorization)</p>
+        </div>
+      </div>
+      <div class="nav-status">
+        <div class="status-indicator" id="backendStatus">
+          <span class="dot checking"></span>
+          <span class="label">Backend: Checking...</span>
+        </div>
+        <button class="btn btn-outline btn-sm" id="btnResetData" title="Reset catalogue & orders to default">↺ Reset Data</button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-content">
+      
+      <!-- Top Section: Session & Quick Switcher -->
+      <section class="card auth-card">
+        <div class="card-header">
+          <div class="title-with-badge">
+            <h2>Part 1 & 2: User Authentication & JWT Minting</h2>
+            <span class="badge" id="sessionRoleBadge">Not Authenticated</span>
+          </div>
+          <div class="server-config">Backend: <code id="apiBaseUrl">http://localhost:3000</code></div>
+        </div>
+
+        <div class="auth-toolbar">
+          <div class="quick-login-group">
+            <span class="toolbar-label">Quick Sign-in:</span>
+            <button class="btn btn-role btn-customer" id="btnQuickCustomer">
+              👤 Asha (Customer)
+              <span class="subtext">role: customer</span>
+            </button>
+            <button class="btn btn-role btn-restaurant" id="btnQuickRestaurant">
+              🍳 MealHub (Restaurant)
+              <span class="subtext">role: restaurant</span>
+            </button>
+            <button class="btn btn-role btn-admin" id="btnQuickAdmin">
+              🛡️ Admin
+              <span class="subtext">role: admin</span>
+            </button>
+          </div>
+
+          <div class="auth-actions">
+            <button class="btn btn-secondary btn-sm" id="btnCustomLoginModal">Custom Login...</button>
+            <button class="btn btn-warning btn-sm" id="btnTamperToken" title="Alter JWT payload without updating signature to test cryptographic rejection">⚠️ Tamper Token</button>
+            <button class="btn btn-danger btn-sm" id="btnLogout">Sign Out</button>
+          </div>
+        </div>
+
+        <!-- JWT Inspector -->
+        <div class="token-inspector" id="tokenInspector">
+          <div class="inspector-header">
+            <h3>Active Token Details (Stored in Client Memory)</h3>
+            <span class="token-status" id="tokenValidityStatus">Status: No Token</span>
+          </div>
+          
+          <div class="token-split-view">
+            <div class="token-raw-box">
+              <label>Raw JWT (<code>header.payload.signature</code>):</label>
+              <div class="raw-token-display" id="rawTokenDisplay">
+                <span class="jwt-part-header">eyJhbGci...</span>.<span class="jwt-part-payload">eyJzdWIi...</span>.<span class="jwt-part-sig">TJVA95Or...</span>
+              </div>
+            </div>
+
+            <div class="token-decoded-grid">
+              <div class="decoded-card">
+                <h4>Payload Claims:</h4>
+                <pre><code id="decodedPayloadDisplay">{ "status": "Logged out" }</code></pre>
+              </div>
+              <div class="decoded-card">
+                <h4>Auth Header Sent:</h4>
+                <pre><code id="authHeaderDisplay">Authorization: (none)</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Security Walkthrough Interactive Guide -->
+      <section class="card walkthrough-card">
+        <div class="card-header">
+          <h2>Interactive Tutorial Test Suite (Parts 3 – 7)</h2>
+          <span class="hint">Click any test case to verify the server behavior</span>
+        </div>
+        <div class="test-suite-grid">
+          <div class="test-step" id="testStep1">
+            <div class="step-num">Step 1</div>
+            <div class="step-desc">
+              <strong>Unauthenticated GET /items</strong>
+              <p>Request catalogue without sending token</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-401">401 Unauthorized</span></div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="no-token-get">Run Test</button>
+          </div>
+
+          <div class="test-step" id="testStep2">
+            <div class="step-num">Step 2</div>
+            <div class="step-desc">
+              <strong>Authenticated GET /items</strong>
+              <p>Read catalogue with current Bearer token</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-200">200 OK</span> (if logged in)</div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="auth-get">Run Test</button>
+          </div>
+
+          <div class="test-step" id="testStep3">
+            <div class="step-num">Step 3</div>
+            <div class="step-desc">
+              <strong>Add Dish (Restaurant)</strong>
+              <p>POST /items with role: restaurant</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-201">201 Created</span></div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="restaurant-post">Run Test</button>
+          </div>
+
+          <div class="test-step" id="testStep4">
+            <div class="step-num">Step 4</div>
+            <div class="step-desc">
+              <strong>Customer attempts Add Dish</strong>
+              <p>POST /items with role: customer</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-403">403 Forbidden</span></div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="customer-post">Run Test</button>
+          </div>
+
+          <div class="test-step" id="testStep5">
+            <div class="step-num">Step 5</div>
+            <div class="step-desc">
+              <strong>Blank Name Validation</strong>
+              <p>POST /items with missing dish name</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-422">422 Unprocessable</span></div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="blank-name-post">Run Test</button>
+          </div>
+
+          <div class="test-step" id="testStep6">
+            <div class="step-num">Step 6</div>
+            <div class="step-desc">
+              <strong>Tampered Signature Check</strong>
+              <p>Send JWT modified by attacker</p>
+            </div>
+            <div class="step-expected">Expects: <span class="code-pill code-401">401 Invalid Token</span></div>
+            <button class="btn btn-outline btn-sm test-btn" data-test="tampered-token">Run Test</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two Column Layout: Catalogue & Operations -->
+      <div class="two-col-layout">
+        
+        <!-- Left: Catalogue & Add Item Form -->
+        <div class="col-main">
+          <!-- Add Item Form -->
+          <div class="card operation-card">
+            <div class="card-header">
+              <h2>Part 5 · POST /items (Add Dish)</h2>
+              <span class="role-requirement">Allowed Roles: <code>restaurant</code>, <code>admin</code></span>
+            </div>
+            <form id="addItemForm" class="add-item-form">
+              <div class="form-row">
+                <div class="form-group flex-2">
+                  <label for="dishName">Dish Name:</label>
+                  <input type="text" id="dishName" placeholder="e.g. Masala Dosa, Biryani" required />
+                </div>
+                <div class="form-group flex-1">
+                  <label for="dishPrice">Price (₹):</label>
+                  <input type="number" id="dishPrice" placeholder="60" min="0" required />
+                </div>
+                <div class="form-group flex-none">
+                  <label>&nbsp;</label>
+                  <button type="submit" class="btn btn-primary" id="btnAddDish">➕ Add Dish</button>
+                </div>
+              </div>
+              <div class="form-quick-helpers">
+                <span>Presets:</span>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="setDishPreset('Masala Dosa', 60)">Masala Dosa (₹60)</button>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="setDishPreset('Hack Burger', 99)">Hack Burger (₹99)</button>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="setDishPreset('', 50)">Empty Name (Test 422)</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Catalogue Display -->
+          <div class="card catalogue-card">
+            <div class="card-header">
+              <div class="title-with-count">
+                <h2>Secured Catalogue (GET /items)</h2>
+                <span class="item-count" id="itemCount">0 items</span>
+              </div>
+              <button class="btn btn-outline btn-sm" id="btnRefreshItems">⟳ Refresh Menu</button>
+            </div>
+
+            <div class="items-grid" id="itemsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Part 7 & Next: Object-Level Authorization (IDOR) -->
+          <div class="card idor-card">
+            <div class="card-header">
+              <div>
+                <h2>Where To Go Next: Object-Level Authorization (IDOR Check)</h2>
+                <p class="subtitle">A customer may read only their own orders. Restaurants and Admins can view all orders.</p>
+              </div>
+              <button class="btn btn-outline btn-sm" id="btnRefreshOrders">⟳ Fetch Orders</button>
+            </div>
+            
+            <div class="idor-content">
+              <div class="orders-list-box" id="ordersListBox">
+                <!-- Orders rendered here -->
+              </div>
+              <div class="idor-test-box">
+                <h4>Direct Object ID Access Test:</h4>
+                <p class="small-text">Try accessing Order #102 directly (belongs to rahul@campus.edu):</p>
+                <button class="btn btn-outline btn-sm" id="btnTestIDOR">GET /orders/102</button>
+                <div id="idorResult" class="idor-result-box"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Terminal & cURL Console -->
+        <div class="col-side">
+          <div class="card terminal-card">
+            <div class="card-header">
+              <div class="terminal-dots">
+                <span class="dot-red"></span>
+                <span class="dot-yellow"></span>
+                <span class="dot-green"></span>
+                <span class="terminal-title">HTTP Inspector & cURL Terminal</span>
+              </div>
+              <button class="btn btn-ghost btn-xs" id="btnClearTerminal">Clear</button>
+            </div>
+
+            <div class="terminal-body" id="terminalLog">
+              <div class="terminal-entry welcome">
+                <span class="term-dim"># CS543 Web Services API Security Inspector</span><br/>
+                <span class="term-dim"># Ready to capture network requests & responses</span><br/>
+                <span class="term-cmd">$ # Pick a quick sign-in or execute any action to see live requests</span>
+              </div>
+            </div>
+
+            <!-- PDF Concept Callout Box -->
+            <div class="concept-callout" id="conceptCallout">
+              <div class="callout-header">
+                <span class="callout-icon">💡</span>
+                <strong id="calloutTitle">401 vs 403 — Don't Mix Them Up</strong>
+              </div>
+              <p id="calloutBody">
+                <strong>401 Unauthorized:</strong> "I don't know who you are" (no token, tampered token, or expired token).<br/>
+                <strong>403 Forbidden:</strong> "I know who you are, but you aren't allowed to do this" (role restriction).
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Custom Login Modal -->
+    <div class="modal-overlay" id="customLoginModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Sign in to CampusEats</h3>
+          <button class="modal-close" id="btnCloseModal">&times;</button>
+        </div>
+        <form id="customLoginForm">
+          <div class="form-group">
+            <label for="customEmail">Email Address:</label>
+            <input type="email" id="customEmail" placeholder="user@campus.edu" required />
+          </div>
+          <div class="form-group">
+            <label for="customPassword">Password:</label>
+            <input type="password" id="customPassword" placeholder="••••••••" required />
+          </div>
+          <div class="modal-hint">
+            <strong>Seeded users:</strong><br/>
+            • <code>asha@campus.edu</code> (pw: <code>customer123</code>)<br/>
+            • <code>mealhub@campus.edu</code> (pw: <code>resto123</code>)<br/>
+            • <code>admin@campus.edu</code> (pw: <code>admin123</code>)
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-outline" id="btnCancelModal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>CS543 Web Services · Dr. Pramit Mazumdar · IIIT Vadodara · API Security Tutorial Implementation</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
